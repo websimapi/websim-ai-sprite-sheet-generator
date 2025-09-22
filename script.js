@@ -5,6 +5,8 @@ class SpriteApp {
     this.imgEl = document.getElementById('sheet');
     this.overlay = document.getElementById('overlay');
     this.frames = [];
+    this.frameHidden = [];
+    this.frameW = 0; this.frameH = 0;
     this.cols = 2;
     this.rows = 2;
     this.colPercents = []; // between 0..100, excludes 0 and 100
@@ -27,6 +29,7 @@ class SpriteApp {
     this.exportArea = document.getElementById('exportArea');
 
     this.framesWrap = document.getElementById('frames');
+    this.frameInfo = document.getElementById('frameInfo');
     this.previewCanvas = document.getElementById('preview');
     this.playBtn = document.getElementById('play');
     this.pauseBtn = document.getElementById('pause');
@@ -267,6 +270,7 @@ class SpriteApp {
 
   extractFrames() {
     this.frames = [];
+    this.frameHidden = [];
     this.framesWrap.innerHTML = '';
 
     const img = this.imgEl;
@@ -298,6 +302,8 @@ class SpriteApp {
     }
 
     // Normalize every frame to the largest W/H
+    this.frameW = maxW; this.frameH = maxH;
+    if (this.frameInfo) this.frameInfo.textContent = `• ${maxW} × ${maxH}px • ${raw.length} frames`;
     let i = 0;
     for (const rCan of raw) {
       const norm = document.createElement('canvas');
@@ -309,6 +315,7 @@ class SpriteApp {
       const offY = Math.floor((maxH - rCan.height)/2);
       nctx.drawImage(rCan, offX, offY);
       this.frames.push(norm);
+      this.frameHidden.push(false);
 
       // UI cell
       const cell = document.createElement('div');
@@ -319,6 +326,17 @@ class SpriteApp {
       const disp = document.createElement('canvas');
       disp.width = maxW; disp.height = maxH;
       disp.getContext('2d').drawImage(norm, 0, 0);
+      
+      // controls
+      const actions = document.createElement('div');
+      actions.className = 'frame-actions';
+      const hideBtn = document.createElement('button'); hideBtn.textContent = 'Hide';
+      const delBtn = document.createElement('button'); delBtn.textContent = 'Delete';
+      const idx = i;
+      hideBtn.addEventListener('click', (e)=>{ e.stopPropagation(); this.frameHidden[idx]=!this.frameHidden[idx]; cell.classList.toggle('hidden', this.frameHidden[idx]); hideBtn.textContent=this.frameHidden[idx]?'Show':'Hide'; if (!this.frameHidden[idx] && this.timer==null) this.draw(idx); });
+      delBtn.addEventListener('click', (e)=>{ e.stopPropagation(); this.frames.splice(idx,1); this.frameHidden.splice(idx,1); cell.remove(); this.reindexFrames(); if (!this.frames.length){ this.pause(); this.previewCanvas.getContext('2d').clearRect(0,0,this.previewCanvas.width,this.previewCanvas.height);} });
+      actions.appendChild(hideBtn); actions.appendChild(delBtn); cell.appendChild(actions);
+      
       cell.appendChild(disp);
       cell.appendChild(dv);
       this.framesWrap.appendChild(cell);
@@ -326,19 +344,17 @@ class SpriteApp {
     }
 
     // Setup preview canvas to normalized size
-    const cvs = this.previewCanvas;
-    cvs.width = maxW;
-    cvs.height = maxH;
-    this.cur = 0;
-    this.draw(0);
+    this.previewCanvas.width = maxW; this.previewCanvas.height = maxH;
+    const start = this.frames.findIndex((_,idx)=>!this.frameHidden[idx]);
+    this.cur = start===-1 ? 0 : start;
+    this.draw(this.cur);
   }
 
   draw(index) {
-    const cvs = this.previewCanvas;
-    const ctx = cvs.getContext('2d');
+    const cvs = this.previewCanvas, ctx = cvs.getContext('2d');
     ctx.clearRect(0,0,cvs.width,cvs.height);
     const frame = this.frames[index];
-    if (frame) ctx.drawImage(frame, 0, 0);
+    if (frame && !this.frameHidden[index]) ctx.drawImage(frame, 0, 0);
   }
 
   play() {
@@ -346,7 +362,8 @@ class SpriteApp {
     this.pause();
     const speed = parseInt(this.speedSlider.value, 10);
     this.timer = setInterval(() => {
-      this.cur = (this.cur + 1) % this.frames.length;
+      if (!this.frames.length) return;
+      for (let k=0;k<this.frames.length;k++){ this.cur=(this.cur+1)%this.frames.length; if(!this.frameHidden[this.cur]) break; }
       this.draw(this.cur);
     }, speed);
   }
@@ -372,6 +389,14 @@ class SpriteApp {
     a.download = 'sprite_sheet.png';
     a.href = this.imgUrl;
     a.click();
+  }
+
+  reindexFrames() {
+    Array.from(this.framesWrap.querySelectorAll('.frame')).forEach((el, i)=>{
+      const tag = el.querySelector('.frame-tag'); if (tag) tag.textContent = i+1;
+    });
+    if (this.frameInfo) this.frameInfo.textContent = `• ${this.frameW} × ${this.frameH}px • ${this.frames.length} frames`;
+    if (this.cur >= this.frames.length) this.cur = 0;
   }
 }
 
