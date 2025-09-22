@@ -90,6 +90,12 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   pointer-events: auto;
   touch-action: none;
 }
+.grid-line.active { background: rgba(0,0,0,1); }
+.grid-line::before {
+  content: "";
+  position: absolute;
+  top: -12px; bottom: -12px; left: -12px; right: -12px;
+}
 .grid-line.vertical { width: 2px; height: 100%; }
 .grid-line.horizontal { height: 2px; width: 100%; }
 .grid-handle {
@@ -137,4 +143,3 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   .grid-row { grid-template-columns: 1fr; }
   .preview { width: 160px; height: 160px; }
 }
-

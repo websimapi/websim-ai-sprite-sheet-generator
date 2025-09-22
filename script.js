@@ -223,37 +223,46 @@ class SpriteApp {
   onDragStart(event, type, index, lineEl) {
     if (event.cancelable) event.preventDefault();
     const pt = event.touches ? event.touches[0] : event;
-    this.dragging = { type, index, lineEl, startX: pt.clientX, startY: pt.clientY };
-    this.overlay.style.pointerEvents = 'auto'; // enable pointer capture during drag
+    this.dragging = { type, index, lineEl, startX: pt.clientX, startY: pt.clientY, value: null };
+    lineEl.classList.add('active');
+    this.overlay.style.pointerEvents = 'auto';
   }
 
   onDragMove(event) {
     if (!this.dragging) return;
     if (event.cancelable) event.preventDefault();
-
     const rect = this.getOverlayRect();
     const pt = event.touches ? event.touches[0] : event;
-
     if (this.dragging.type === 'v') {
       const x = ((pt.clientX - rect.left) / rect.width) * 100;
       const clamped = Math.max(1, Math.min(99, x));
-      this.colPercents[this.dragging.index] = clamped;
-      this.colPercents.sort((a, b) => a - b);
-      this.renderOverlay();
+      this.dragging.value = clamped;
+      this.dragging.lineEl.style.left = `${clamped}%`;
     } else {
       const y = ((pt.clientY - rect.top) / rect.height) * 100;
       const clamped = Math.max(1, Math.min(99, y));
-      this.rowPercents[this.dragging.index] = clamped;
-      this.rowPercents.sort((a, b) => a - b);
-      this.renderOverlay();
+      this.dragging.value = clamped;
+      this.dragging.lineEl.style.top = `${clamped}%`;
     }
   }
 
   onDragEnd() {
     if (!this.dragging) return;
+    const { type, index, value, lineEl } = this.dragging;
+    lineEl.classList.remove('active');
     this.dragging = null;
     this.overlay.style.pointerEvents = 'none';
-    if (this.imgEl.complete && this.imgEl.naturalWidth) this.extractFrames();
+    if (value != null) {
+      if (type === 'v') {
+        this.colPercents[index] = value;
+        this.colPercents.sort((a,b)=>a-b);
+      } else {
+        this.rowPercents[index] = value;
+        this.rowPercents.sort((a,b)=>a-b);
+      }
+      this.renderOverlay();
+      if (this.imgEl.complete && this.imgEl.naturalWidth) this.extractFrames();
+    }
   }
 
   extractFrames() {
