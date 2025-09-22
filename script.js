@@ -6,15 +6,22 @@ class SpriteSheetGenerator {
         this.currentFrame = 0;
         this.columns = 4;
         this.rows = 2;
+        this.columnPositions = []; // Store custom column positions (percentages)
+        this.rowPositions = []; // Store custom row positions (percentages)
+        this.isDragging = false;
+        this.dragElement = null;
         
         this.initializeElements();
         this.attachEventListeners();
+        this.initializeGridPositions();
     }
     
     initializeElements() {
         this.promptInput = document.getElementById('prompt');
         this.columnsSelect = document.getElementById('columns');
         this.rowsSelect = document.getElementById('rows');
+        this.columnsManual = document.getElementById('columnsManual');
+        this.rowsManual = document.getElementById('rowsManual');
         this.styleSelect = document.getElementById('style');
         this.generateBtn = document.getElementById('generateBtn');
         this.resultsDiv = document.getElementById('results');
@@ -35,11 +42,35 @@ class SpriteSheetGenerator {
         this.generateBtn.addEventListener('click', () => this.generateSpriteSheet());
         this.columnsSelect.addEventListener('change', (e) => {
             this.columns = parseInt(e.target.value);
+            this.columnsManual.value = this.columns;
+            this.initializeGridPositions();
             this.updateGridOverlay();
         });
         this.rowsSelect.addEventListener('change', (e) => {
             this.rows = parseInt(e.target.value);
+            this.rowsManual.value = this.rows;
+            this.initializeGridPositions();
             this.updateGridOverlay();
+        });
+        
+        this.columnsManual.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            if (value && value > 0 && value <= 20) {
+                this.columns = value;
+                this.columnsSelect.value = value <= 8 ? value : 8;
+                this.initializeGridPositions();
+                this.updateGridOverlay();
+            }
+        });
+        
+        this.rowsManual.addEventListener('input', (e) => {
+            const value = parseInt(e.target.value);
+            if (value && value > 0 && value <= 20) {
+                this.rows = value;
+                this.rowsSelect.value = value <= 6 ? value : 6;
+                this.initializeGridPositions();
+                this.updateGridOverlay();
+            }
         });
         this.playBtn.addEventListener('click', () => this.playAnimation());
         this.pauseBtn.addEventListener('click', () => this.pauseAnimation());
@@ -53,6 +84,26 @@ class SpriteSheetGenerator {
         
         document.getElementById('downloadFrames').addEventListener('click', () => this.downloadFrames());
         document.getElementById('downloadGif').addEventListener('click', () => this.downloadGif());
+        
+        // Add drag event listeners
+        document.addEventListener('mousemove', (e) => this.handleDrag(e));
+        document.addEventListener('mouseup', () => this.stopDrag());
+        document.addEventListener('touchmove', (e) => this.handleDrag(e.touches[0]), { passive: false });
+        document.addEventListener('touchend', () => this.stopDrag());
+    }
+    
+    initializeGridPositions() {
+        // Initialize evenly spaced positions
+        this.columnPositions = [];
+        this.rowPositions = [];
+        
+        for (let i = 1; i < this.columns; i++) {
+            this.columnPositions.push((i / this.columns) * 100);
+        }
+        
+        for (let i = 1; i < this.rows; i++) {
+            this.rowPositions.push((i / this.rows) * 100);
+        }
     }
     
     async generateSpriteSheet() {
@@ -122,33 +173,84 @@ class SpriteSheetGenerator {
         const overlay = this.gridOverlay;
         overlay.innerHTML = '';
         
-        // Create grid lines
-        for (let i = 1; i < this.columns; i++) {
+        // Create vertical grid lines
+        this.columnPositions.forEach((position, index) => {
             const vLine = document.createElement('div');
-            vLine.style.cssText = `
-                position: absolute;
-                left: ${(i / this.columns) * 100}%;
-                top: 0;
-                width: 1px;
-                height: 100%;
-                background: #00ff88;
-                opacity: 0.7;
-            `;
+            vLine.className = 'grid-line vertical';
+            vLine.style.left = `${position}%`;
+            vLine.dataset.type = 'vertical';
+            vLine.dataset.index = index;
+            
+            vLine.addEventListener('mousedown', (e) => this.startDrag(e, vLine));
+            vLine.addEventListener('touchstart', (e) => this.startDrag(e.touches[0], vLine), { passive: false });
+            
             overlay.appendChild(vLine);
-        }
+        });
         
-        for (let i = 1; i < this.rows; i++) {
+        // Create horizontal grid lines
+        this.rowPositions.forEach((position, index) => {
             const hLine = document.createElement('div');
-            hLine.style.cssText = `
-                position: absolute;
-                top: ${(i / this.rows) * 100}%;
-                left: 0;
-                width: 100%;
-                height: 1px;
-                background: #00ff88;
-                opacity: 0.7;
-            `;
+            hLine.className = 'grid-line horizontal';
+            hLine.style.top = `${position}%`;
+            hLine.dataset.type = 'horizontal';
+            hLine.dataset.index = index;
+            
+            hLine.addEventListener('mousedown', (e) => this.startDrag(e, hLine));
+            hLine.addEventListener('touchstart', (e) => this.startDrag(e.touches[0], hLine), { passive: false });
+            
             overlay.appendChild(hLine);
+        });
+    }
+    
+    startDrag(event, element) {
+        event.preventDefault();
+        this.isDragging = true;
+        this.dragElement = element;
+        element.classList.add('dragging');
+        
+        // Store initial mouse position
+        this.dragStartX = event.clientX;
+        this.dragStartY = event.clientY;
+        
+        // Store container bounds
+        const rect = this.gridOverlay.getBoundingClientRect();
+        this.containerRect = rect;
+    }
+    
+    handleDrag(event) {
+        if (!this.isDragging || !this.dragElement) return;
+        
+        event.preventDefault();
+        
+        const rect = this.containerRect;
+        const type = this.dragElement.dataset.type;
+        const index = parseInt(this.dragElement.dataset.index);
+        
+        if (type === 'vertical') {
+            const x = event.clientX - rect.left;
+            const percentage = Math.max(5, Math.min(95, (x / rect.width) * 100));
+            
+            this.columnPositions[index] = percentage;
+            this.dragElement.style.left = `${percentage}%`;
+        } else if (type === 'horizontal') {
+            const y = event.clientY - rect.top;
+            const percentage = Math.max(5, Math.min(95, (y / rect.height) * 100));
+            
+            this.rowPositions[index] = percentage;
+            this.dragElement.style.top = `${percentage}%`;
+        }
+    }
+    
+    stopDrag() {
+        if (this.isDragging && this.dragElement) {
+            this.dragElement.classList.remove('dragging');
+            this.isDragging = false;
+            this.dragElement = null;
+            
+            // Re-extract frames with new grid positions
+            if (this.spriteSheet) {
+                this.extractFrames();
+            }
         }
     }
     
@@ -157,12 +259,26 @@ class SpriteSheetGenerator {
         this.frames = [];
         
         const img = this.spriteSheetImg;
-        const frameWidth = img.naturalWidth / this.columns;
-        const frameHeight = img.naturalHeight / this.rows;
         
+        // Calculate actual positions including custom grid positions
+        const colPositions = [0, ...this.columnPositions.map(p => p / 100), 1];
+        const rowPositions = [0, ...this.rowPositions.map(p => p / 100), 1];
+        
+        // Sort positions to ensure proper order
+        colPositions.sort((a, b) => a - b);
+        rowPositions.sort((a, b) => a - b);
+        
+        let frameIndex = 0;
         for (let row = 0; row < this.rows; row++) {
             for (let col = 0; col < this.columns; col++) {
-                const frameIndex = row * this.columns + col;
+                // Calculate frame boundaries
+                const x1 = colPositions[col] * img.naturalWidth;
+                const x2 = colPositions[col + 1] * img.naturalWidth;
+                const y1 = rowPositions[row] * img.naturalHeight;
+                const y2 = rowPositions[row + 1] * img.naturalHeight;
+                
+                const frameWidth = x2 - x1;
+                const frameHeight = y2 - y1;
                 
                 // Create canvas for this frame
                 const canvas = document.createElement('canvas');
@@ -173,7 +289,7 @@ class SpriteSheetGenerator {
                 // Extract frame from sprite sheet
                 ctx.drawImage(
                     img,
-                    col * frameWidth, row * frameHeight,
+                    x1, y1,
                     frameWidth, frameHeight,
                     0, 0,
                     frameWidth, frameHeight
@@ -196,6 +312,8 @@ class SpriteSheetGenerator {
                 frameDiv.appendChild(displayCanvas);
                 frameDiv.appendChild(frameNumber);
                 this.frameContainer.appendChild(frameDiv);
+                
+                frameIndex++;
             }
         }
         
@@ -271,4 +389,3 @@ class SpriteSheetGenerator {
 document.addEventListener('DOMContentLoaded', () => {
     new SpriteSheetGenerator();
 });
-
