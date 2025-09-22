@@ -156,67 +156,7 @@ class SpriteApp {
   renderOverlay() {
     if (!this.overlay) return;
     this.overlay.innerHTML = '';
-    this.overlay.style.pointerEvents = 'none';
-
-    // Add draggable lines with large handles for touch
-    // Vertical lines
-    this.colPercents.forEach((p, i) => {
-      const line = document.createElement('div');
-      line.className = 'grid-line vertical';
-      line.style.left = `${p}%`;
-      line.style.top = '0';
-      line.style.height = '100%';
-      line.dataset.type = 'v';
-      line.dataset.index = String(i);
-
-      const handle = document.createElement('div');
-      handle.className = 'grid-handle v';
-      handle.style.left = '0';
-      handle.textContent = '|';
-      handle.style.top = '50%';
-
-      // Make handles catch events
-      handle.style.pointerEvents = 'auto';
-      line.style.pointerEvents = 'auto';
-
-      const start = (ev) => this.onDragStart(ev, 'v', i, line);
-      line.addEventListener('mousedown', start);
-      line.addEventListener('touchstart', start, { passive: false });
-      handle.addEventListener('mousedown', start);
-      handle.addEventListener('touchstart', start, { passive: false });
-
-      line.appendChild(handle);
-      this.overlay.appendChild(line);
-    });
-
-    // Horizontal lines
-    this.rowPercents.forEach((p, i) => {
-      const line = document.createElement('div');
-      line.className = 'grid-line horizontal';
-      line.style.top = `${p}%`;
-      line.style.left = '0';
-      line.style.width = '100%';
-      line.dataset.type = 'h';
-      line.dataset.index = String(i);
-
-      const handle = document.createElement('div');
-      handle.className = 'grid-handle h';
-      handle.style.top = '0';
-      handle.textContent = '—';
-      handle.style.left = '50%';
-
-      handle.style.pointerEvents = 'auto';
-      line.style.pointerEvents = 'auto';
-
-      const start = (ev) => this.onDragStart(ev, 'h', i, line);
-      line.addEventListener('mousedown', start);
-      line.addEventListener('touchstart', start, { passive: false });
-      handle.addEventListener('mousedown', start);
-      handle.addEventListener('touchstart', start, { passive: false });
-
-      line.appendChild(handle);
-      this.overlay.appendChild(line);
-    });
+    return; // grid disabled
   }
 
   getOverlayRect() {
@@ -322,7 +262,7 @@ class SpriteApp {
       cell.className = 'frame';
       const dv = document.createElement('div');
       dv.className = 'frame-tag';
-      dv.textContent = i+1;
+      dv.textContent = `${i+1} • ${maxW}×${maxH}`;
       const disp = document.createElement('canvas');
       disp.width = maxW; disp.height = maxH;
       disp.getContext('2d').drawImage(norm, 0, 0);

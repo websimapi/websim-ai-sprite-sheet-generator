@@ -83,6 +83,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 #overlay {
   position: absolute; inset: 0;
   pointer-events: none;
+  display: none;
 }
 .grid-line {
   position: absolute;
@@ -118,7 +119,12 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 .frame {
   border: 1px solid var(--border);
   border-radius: 8px;
-  background: #fff;
+  background:
+    linear-gradient(45deg, #eee 25%, transparent 25%) 0 0/16px 16px,
+    linear-gradient(-45deg, #eee 25%, transparent 25%) 0 0/16px 16px,
+    linear-gradient(45deg, transparent 75%, #eee 75%) 0 0/16px 16px,
+    linear-gradient(-45deg, transparent 75%, #eee 75%) 0 0/16px 16px;
+  background-color: #fff;
   aspect-ratio: 1;
   overflow: hidden;
   position: relative;
@@ -140,6 +146,11 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
   border: 1px solid var(--border);
   border-radius: 8px; background: #fff;
   display: block; margin-top: 10px;
+  background:
+    linear-gradient(45deg, #eee 25%, transparent 25%) 0 0/16px 16px,
+    linear-gradient(-45deg, #eee 25%, transparent 25%) 0 0/16px 16px,
+    linear-gradient(45deg, transparent 75%, #eee 75%) 0 0/16px 16px,
+    linear-gradient(-45deg, transparent 75%, #eee 75%) 0 0/16px 16px;
 }
 
 @media (max-width: 720px) {
