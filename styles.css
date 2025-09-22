@@ -83,7 +83,7 @@ button:disabled { opacity: 0.6; cursor: not-allowed; }
 #overlay {
   position: absolute; inset: 0;
   pointer-events: none;
-  display: none;
+  display: block;
 }
 .grid-line {
   position: absolute;

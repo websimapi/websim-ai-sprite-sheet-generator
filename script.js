@@ -156,7 +156,30 @@ class SpriteApp {
   renderOverlay() {
     if (!this.overlay) return;
     this.overlay.innerHTML = '';
-    return; // grid disabled
+    if (!this.imgEl || !this.imgEl.naturalWidth) return;
+    this.overlay.style.pointerEvents = 'auto';
+    // vertical lines
+    this.colPercents.forEach((p, i) => {
+      const line = document.createElement('div');
+      line.className = 'grid-line vertical';
+      line.style.left = `${p}%`; line.style.top = '0'; line.style.bottom = '0';
+      line.addEventListener('mousedown', (e)=> this.onDragStart(e,'v',i,line));
+      line.addEventListener('touchstart', (e)=> this.onDragStart(e,'v',i,line), {passive:false});
+      const h = document.createElement('div'); h.className = 'grid-handle v'; h.textContent = '↕';
+      h.style.left = '0'; h.style.top = '50%'; line.appendChild(h);
+      this.overlay.appendChild(line);
+    });
+    // horizontal lines
+    this.rowPercents.forEach((p, i) => {
+      const line = document.createElement('div');
+      line.className = 'grid-line horizontal';
+      line.style.top = `${p}%`; line.style.left = '0'; line.style.right = '0';
+      line.addEventListener('mousedown', (e)=> this.onDragStart(e,'h',i,line));
+      line.addEventListener('touchstart', (e)=> this.onDragStart(e,'h',i,line), {passive:false});
+      const h = document.createElement('div'); h.className = 'grid-handle h'; h.textContent = '↔';
+      h.style.top = '0'; h.style.left = '50%'; line.appendChild(h);
+      this.overlay.appendChild(line);
+    });
   }
 
   getOverlayRect() {
