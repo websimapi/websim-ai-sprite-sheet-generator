@@ -271,8 +271,9 @@ class SpriteSheetGenerator {
         // Sort positions to ensure proper order
         colPositions.sort((a, b) => a - b);
         rowPositions.sort((a, b) => a - b);
-        
-        let frameIndex = 0;
+
+        // First pass: extract raw frames and find max dimensions
+        const rawFrames = [];
         for (let row = 0; row < this.rows; row++) {
             for (let col = 0; col < this.columns; col++) {
                 // Calculate frame boundaries
@@ -301,44 +302,46 @@ class SpriteSheetGenerator {
                     frameWidth, frameHeight
                 );
                 
-                this.frames.push(canvas);
-                
-                // Create frame display
-                const frameDiv = document.createElement('div');
-                frameDiv.className = 'frame';
-                
-                const displayCanvas = canvas.cloneNode();
-                const displayCtx = displayCanvas.getContext('2d');
-                displayCtx.drawImage(canvas, 0, 0);
-                
-                const frameNumber = document.createElement('div');
-                frameNumber.className = 'frame-number';
-                frameNumber.textContent = frameIndex + 1;
-                
-                frameDiv.appendChild(displayCanvas);
-                frameDiv.appendChild(frameNumber);
-                this.frameContainer.appendChild(frameDiv);
-                
-                frameIndex++;
+                rawFrames.push(canvas);
             }
         }
-        
-        // Pad all frames to the largest size
-        this.frames = this.frames.map(c => {
-            if (c.width === maxW && c.height === maxH) return c;
-            const padded = document.createElement('canvas');
-            padded.width = maxW; padded.height = maxH;
-            const px = Math.floor((maxW - c.width) / 2), py = Math.floor((maxH - c.height) / 2);
-            padded.getContext('2d').drawImage(c, px, py);
-            return padded;
-        });
-        
-        // Update displayed thumbnails to padded sizes
-        const displays = this.frameContainer.querySelectorAll('.frame canvas');
-        displays.forEach((dc, i) => {
-            const src = this.frames[i]; dc.width = src.width; dc.height = src.height;
-            const dctx = dc.getContext('2d'); dctx.clearRect(0,0,dc.width,dc.height); dctx.drawImage(src,0,0);
-        });
+
+        // Second pass: create normalized frames and displays
+        let frameIndex = 0;
+        for (const rawFrame of rawFrames) {
+            // Create normalized canvas with max dimensions
+            const normalizedCanvas = document.createElement('canvas');
+            normalizedCanvas.width = maxW;
+            normalizedCanvas.height = maxH;
+            const normalizedCtx = normalizedCanvas.getContext('2d');
+            
+            // Center the raw frame within the normalized canvas
+            const offsetX = (maxW - rawFrame.width) / 2;
+            const offsetY = (maxH - rawFrame.height) / 2;
+            normalizedCtx.drawImage(rawFrame, offsetX, offsetY);
+            
+            this.frames.push(normalizedCanvas);
+            
+            // Create frame display with same dimensions
+            const frameDiv = document.createElement('div');
+            frameDiv.className = 'frame';
+            
+            const displayCanvas = document.createElement('canvas');
+            displayCanvas.width = maxW;
+            displayCanvas.height = maxH;
+            const displayCtx = displayCanvas.getContext('2d');
+            displayCtx.drawImage(normalizedCanvas, 0, 0);
+            
+            const frameNumber = document.createElement('div');
+            frameNumber.className = 'frame-number';
+            frameNumber.textContent = frameIndex + 1;
+            
+            frameDiv.appendChild(displayCanvas);
+            frameDiv.appendChild(frameNumber);
+            this.frameContainer.appendChild(frameDiv);
+            
+            frameIndex++;
+        }
         
         this.setupAnimationCanvas();
     }
