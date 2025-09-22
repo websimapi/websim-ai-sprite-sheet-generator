@@ -222,7 +222,10 @@ class SpriteSheetGenerator {
     handleDrag(event) {
         if (!this.isDragging || !this.dragElement) return;
         
-        event.preventDefault();
+        // This is a touch event, so we want to prevent default scrolling behavior
+        if (event.touches) {
+            event.preventDefault();
+        }
         
         const evt = event.touches ? event.touches[0] : event;
         const rect = this.containerRect;
