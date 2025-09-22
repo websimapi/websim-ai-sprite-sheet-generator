@@ -88,7 +88,7 @@ class SpriteSheetGenerator {
         // Add drag event listeners
         document.addEventListener('mousemove', (e) => this.handleDrag(e));
         document.addEventListener('mouseup', () => this.stopDrag());
-        document.addEventListener('touchmove', (e) => this.handleDrag(e.touches[0]), { passive: false });
+        document.addEventListener('touchmove', (e) => this.handleDrag(e), { passive: false });
         document.addEventListener('touchend', () => this.stopDrag());
     }
     
@@ -182,7 +182,7 @@ class SpriteSheetGenerator {
             vLine.dataset.index = index;
             
             vLine.addEventListener('mousedown', (e) => this.startDrag(e, vLine));
-            vLine.addEventListener('touchstart', (e) => this.startDrag(e.touches[0], vLine), { passive: false });
+            vLine.addEventListener('touchstart', (e) => this.startDrag(e, vLine), { passive: false });
             
             overlay.appendChild(vLine);
         });
@@ -196,7 +196,7 @@ class SpriteSheetGenerator {
             hLine.dataset.index = index;
             
             hLine.addEventListener('mousedown', (e) => this.startDrag(e, hLine));
-            hLine.addEventListener('touchstart', (e) => this.startDrag(e.touches[0], hLine), { passive: false });
+            hLine.addEventListener('touchstart', (e) => this.startDrag(e, hLine), { passive: false });
             
             overlay.appendChild(hLine);
         });
@@ -208,9 +208,11 @@ class SpriteSheetGenerator {
         this.dragElement = element;
         element.classList.add('dragging');
         
+        const evt = event.touches ? event.touches[0] : event;
+        
         // Store initial mouse position
-        this.dragStartX = event.clientX;
-        this.dragStartY = event.clientY;
+        this.dragStartX = evt.clientX;
+        this.dragStartY = evt.clientY;
         
         // Store container bounds
         const rect = this.gridOverlay.getBoundingClientRect();
@@ -222,18 +224,19 @@ class SpriteSheetGenerator {
         
         event.preventDefault();
         
+        const evt = event.touches ? event.touches[0] : event;
         const rect = this.containerRect;
         const type = this.dragElement.dataset.type;
         const index = parseInt(this.dragElement.dataset.index);
         
         if (type === 'vertical') {
-            const x = event.clientX - rect.left;
+            const x = evt.clientX - rect.left;
             const percentage = Math.max(5, Math.min(95, (x / rect.width) * 100));
             
             this.columnPositions[index] = percentage;
             this.dragElement.style.left = `${percentage}%`;
         } else if (type === 'horizontal') {
-            const y = event.clientY - rect.top;
+            const y = evt.clientY - rect.top;
             const percentage = Math.max(5, Math.min(95, (y / rect.height) * 100));
             
             this.rowPositions[index] = percentage;
