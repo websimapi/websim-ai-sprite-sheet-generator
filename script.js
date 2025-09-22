@@ -260,6 +260,7 @@ class SpriteSheetGenerator {
     extractFrames() {
         this.frameContainer.innerHTML = '';
         this.frames = [];
+        let maxW = 0, maxH = 0;
         
         const img = this.spriteSheetImg;
         
@@ -282,6 +283,8 @@ class SpriteSheetGenerator {
                 
                 const frameWidth = x2 - x1;
                 const frameHeight = y2 - y1;
+                maxW = Math.max(maxW, frameWidth);
+                maxH = Math.max(maxH, frameHeight);
                 
                 // Create canvas for this frame
                 const canvas = document.createElement('canvas');
@@ -319,6 +322,22 @@ class SpriteSheetGenerator {
                 frameIndex++;
             }
         }
+        
+        // Pad all frames to the largest size
+        this.frames = this.frames.map(c => {
+            if (c.width === maxW && c.height === maxH) return c;
+            const padded = document.createElement('canvas');
+            padded.width = maxW; padded.height = maxH;
+            padded.getContext('2d').drawImage(c, 0, 0);
+            return padded;
+        });
+        
+        // Update displayed thumbnails to padded sizes
+        const displays = this.frameContainer.querySelectorAll('.frame canvas');
+        displays.forEach((dc, i) => {
+            const src = this.frames[i]; dc.width = src.width; dc.height = src.height;
+            const dctx = dc.getContext('2d'); dctx.clearRect(0,0,dc.width,dc.height); dctx.drawImage(src,0,0);
+        });
         
         this.setupAnimationCanvas();
     }

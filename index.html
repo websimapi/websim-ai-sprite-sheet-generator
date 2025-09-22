@@ -1,98 +1,115 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>AI Sprite Sheet Tool</title>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css"/>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Sprite Sheet Generator</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body>
-  <div class="app">
-    <header class="header">
-      <h1>AI Sprite Sheet Tool</h1>
-      <p>Create, align, and export uniform frames from a single prompt.</p>
-    </header>
+    <div class="container">
+        <header>
+            <h1>AI Sprite Sheet Generator</h1>
+            <p>Generate perfectly gridded animation frames with a single AI prompt</p>
+        </header>
 
-    <section class="panel">
-      <div class="field">
-        <label for="prompt">Animation Description</label>
-        <textarea id="prompt" placeholder="A sprite sheet showing four frames of animation of a bird in flight. The bird is depicted in silhouette, with the wings in various positions suggesting movement. The style is simple and graphic, suitable for animation or game use. The background is transparent."></textarea>
-      </div>
+        <div class="controls">
+            <div class="input-group">
+                <label for="prompt">Animation Description</label>
+                <textarea id="prompt" placeholder="e.g., A walking character cycle, 8 frames in a 4x2 grid, pixel art style, each frame shows different walking poses"></textarea>
+            </div>
 
-      <div class="grid-row">
-        <div class="field">
-          <label for="cols">Columns</label>
-          <input id="cols" type="number" min="1" max="20" value="2"/>
+            <div class="grid-controls">
+                <div class="input-group">
+                    <label for="columns">Grid Columns</label>
+                    <div class="grid-input-group">
+                        <select id="columns">
+                            <option value="2" selected>2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                            <option value="8">8</option>
+                        </select>
+                        <input type="number" id="columnsManual" min="1" max="20" value="2" placeholder="Custom">
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label for="rows">Grid Rows</label>
+                    <div class="grid-input-group">
+                        <select id="rows">
+                            <option value="1">1</option>
+                            <option value="2" selected>2</option>
+                            <option value="3">3</option>
+                            <option value="4">4</option>
+                            <option value="5">5</option>
+                            <option value="6">6</option>
+                        </select>
+                        <input type="number" id="rowsManual" min="1" max="20" value="2" placeholder="Custom">
+                    </div>
+                </div>
+            </div>
+
+            <div class="input-group">
+                <label for="style">Style Instructions</label>
+                <select id="style">
+                    <option value="">Custom (use description above)</option>
+                    <option value="pixel art style, 16-bit retro game graphics">Pixel Art</option>
+                    <option value="cartoon animation style, clean lines">Cartoon</option>
+                    <option value="realistic 3D rendered style">3D Realistic</option>
+                    <option value="hand-drawn animation style">Hand-drawn</option>
+                    <option value="minimalist flat design">Minimalist</option>
+                </select>
+            </div>
+
+            <button id="generateBtn" class="generate-btn">
+                <span class="btn-text">Generate Sprite Sheet</span>
+                <div class="loading-spinner" style="display: none;"></div>
+            </button>
         </div>
-        <div class="field">
-          <label for="rows">Rows</label>
-          <input id="rows" type="number" min="1" max="20" value="2"/>
+
+        <div id="results" class="results" style="display: none;">
+            <div class="result-section">
+                <h3>Generated Sprite Sheet</h3>
+                <div class="sprite-container">
+                    <img id="spriteSheet" alt="Generated sprite sheet">
+                    <div class="grid-overlay" id="gridOverlay"></div>
+                </div>
+            </div>
+
+            <div class="result-section">
+                <h3>Individual Frames</h3>
+                <div id="frameContainer" class="frame-container"></div>
+            </div>
+
+            <div class="result-section">
+                <h3>Animation Preview</h3>
+                <div class="animation-controls">
+                    <button id="playBtn">Play</button>
+                    <button id="pauseBtn">Pause</button>
+                    <div class="speed-control">
+                        <label for="speedSlider">Speed:</label>
+                        <input type="range" id="speedSlider" min="50" max="1000" value="200">
+                        <span id="speedValue">200ms</span>
+                    </div>
+                </div>
+                <div class="animation-preview">
+                    <canvas id="animationCanvas"></canvas>
+                </div>
+            </div>
+
+            <div class="result-section">
+                <h3>Export Options</h3>
+                <div class="export-controls">
+                    <button id="downloadFrames">Download All Frames</button>
+                    <button id="downloadGif">Download as GIF</button>
+                </div>
+            </div>
         </div>
-        <div class="field">
-          <label for="style">Style</label>
-          <select id="style">
-            <option value="">Custom</option>
-            <option value="pixel art style, 16-bit retro game graphics">Pixel Art</option>
-            <option value="cartoon animation style, clean lines">Cartoon</option>
-            <option value="realistic 3D rendered style">3D Realistic</option>
-            <option value="hand-drawn animation style">Hand-drawn</option>
-            <option value="minimalist flat design">Minimalist</option>
-          </select>
-        </div>
-      </div>
+    </div>
 
-      <div class="actions">
-        <button id="generate">
-          <span class="btn-text">Generate Sprite Sheet</span>
-          <span class="loader" aria-hidden="true"></span>
-        </button>
-        <label class="file-btn">
-          <input id="upload" type="file" accept="image/*" hidden/>
-          <span>Upload Sprite Sheet</span>
-        </label>
-      </div>
-    </section>
-
-    <section class="panel" id="workArea" style="display:none;">
-      <h3>Sprite Sheet & Grid</h3>
-      <div class="sheet-wrap" id="sheetWrap">
-        <img id="sheet" alt="sprite sheet"/>
-        <div id="overlay"></div>
-      </div>
-      <p class="hint">Tip: Drag grid lines to align frames precisely.</p>
-    </section>
-
-    <section class="panel" id="framesArea" style="display:none;">
-      <h3>Frames (Uniform Size)</h3>
-      <div id="frames" class="frames"></div>
-    </section>
-
-    <section class="panel" id="previewArea" style="display:none;">
-      <h3>Animation Preview</h3>
-      <div class="controls">
-        <button id="play">Play</button>
-        <button id="pause">Pause</button>
-        <label class="speed">
-          <span>Speed</span>
-          <input id="speed" type="range" min="50" max="1000" value="200"/>
-          <span id="speedVal">200ms</span>
-        </label>
-      </div>
-      <canvas id="preview" class="preview"></canvas>
-    </section>
-
-    <section class="panel" id="exportArea" style="display:none;">
-      <h3>Export</h3>
-      <div class="actions">
-        <button id="dlFrames">Download All Frames (PNG)</button>
-        <button id="dlSheet">Download Sprite Sheet (PNG)</button>
-      </div>
-    </section>
-  </div>
-
-  <script src="script.js"></script>
+    <script src="script.js"></script>
 <script defer src="https://static.cloudflareinsights.com/beacon.min.js/v8c78df7c7c0f484497ecbca7046644da1771523124516" integrity="sha512-8DS7rgIrAmghBFwoOTujcf6D9rXvH8xm8JQ1Ja01h9QX8EzXldiszufYa4IFfKdLUKTTrnSFXLDkUEOTrZQ8Qg==" data-cf-beacon='{"version":"2024.11.0","token":"4c6229722a6346bc8eb5cb0e5eae5d41","server_timing":{"name":{"cfCacheStatus":true,"cfEdge":true,"cfExtPri":true,"cfL4":true,"cfOrigin":true,"cfSpeedBrain":true},"location_startswith":null}}' crossorigin="anonymous"></script>
 </body>
 </html>
-
