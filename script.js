@@ -37,7 +37,7 @@ class SpriteApp {
     this.dlSheet = document.getElementById('dlSheet');
 
     // Defaults
-    this.prompt.value =
+    if (this.prompt) this.prompt.value =
       "A sprite sheet showing four frames of animation of a bird in flight. The bird is depicted in silhouette, with the wings in various positions suggesting movement. The style is simple and graphic, suitable for animation or game use. The background is transparent.";
 
     // Init
@@ -46,16 +46,16 @@ class SpriteApp {
   }
 
   bind() {
-    this.generateBtn.addEventListener('click', () => this.generate());
-    this.uploadInput.addEventListener('change', (e) => this.handleUpload(e));
+    this.generateBtn?.addEventListener('click', () => this.generate());
+    this.uploadInput?.addEventListener('change', (e) => this.handleUpload(e));
 
-    this.colsInput.addEventListener('input', () => {
+    this.colsInput?.addEventListener('input', () => {
       this.cols = this.clampInt(this.colsInput.value, 1, 20);
       this.syncGrid();
       if (this.imgEl.complete && this.imgEl.naturalWidth) this.extractFrames();
     });
 
-    this.rowsInput.addEventListener('input', () => {
+    this.rowsInput?.addEventListener('input', () => {
       this.rows = this.clampInt(this.rowsInput.value, 1, 20);
       this.syncGrid();
       if (this.imgEl.complete && this.imgEl.naturalWidth) this.extractFrames();
@@ -68,10 +68,10 @@ class SpriteApp {
     document.addEventListener('touchend', () => this.onDragEnd());
 
     // Preview
-    this.playBtn.addEventListener('click', () => this.play());
-    this.pauseBtn.addEventListener('click', () => this.pause());
-    this.speedSlider.addEventListener('input', (e) => {
-      this.speedVal.textContent = `${e.target.value}ms`;
+    this.playBtn?.addEventListener('click', () => this.play());
+    this.pauseBtn?.addEventListener('click', () => this.pause());
+    this.speedSlider?.addEventListener('input', (e) => {
+      if (this.speedVal) this.speedVal.textContent = `${e.target.value}ms`;
       if (this.timer) {
         this.pause();
         this.play();
@@ -79,8 +79,8 @@ class SpriteApp {
     });
 
     // Exports
-    this.dlFrames.addEventListener('click', () => this.downloadFrames());
-    this.dlSheet.addEventListener('click', () => this.downloadSheet());
+    this.dlFrames?.addEventListener('click', () => this.downloadFrames());
+    this.dlSheet?.addEventListener('click', () => this.downloadSheet());
   }
 
   clampInt(v, min, max) {
