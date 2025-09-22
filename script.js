@@ -260,7 +260,6 @@ class SpriteSheetGenerator {
     extractFrames() {
         this.frameContainer.innerHTML = '';
         this.frames = [];
-        let maxW = 0, maxH = 0;
         
         const img = this.spriteSheetImg;
         
@@ -274,13 +273,15 @@ class SpriteSheetGenerator {
 
         // First pass: extract raw frames and find max dimensions
         const rawFrames = [];
+        let maxW = 0, maxH = 0;
+        
         for (let row = 0; row < this.rows; row++) {
             for (let col = 0; col < this.columns; col++) {
                 // Calculate frame boundaries
-                const x1 = colPositions[col] * img.naturalWidth;
-                const x2 = colPositions[col + 1] * img.naturalWidth;
-                const y1 = rowPositions[row] * img.naturalHeight;
-                const y2 = rowPositions[row + 1] * img.naturalHeight;
+                const x1 = Math.floor(colPositions[col] * img.naturalWidth);
+                const x2 = Math.floor(colPositions[col + 1] * img.naturalWidth);
+                const y1 = Math.floor(rowPositions[row] * img.naturalHeight);
+                const y2 = Math.floor(rowPositions[row + 1] * img.naturalHeight);
                 
                 const frameWidth = x2 - x1;
                 const frameHeight = y2 - y1;
@@ -306,23 +307,26 @@ class SpriteSheetGenerator {
             }
         }
 
-        // Second pass: create normalized frames and displays
+        // Ensure all frames are EXACTLY the same size
         let frameIndex = 0;
         for (const rawFrame of rawFrames) {
-            // Create normalized canvas with max dimensions
+            // Create normalized canvas with EXACT max dimensions
             const normalizedCanvas = document.createElement('canvas');
             normalizedCanvas.width = maxW;
             normalizedCanvas.height = maxH;
             const normalizedCtx = normalizedCanvas.getContext('2d');
             
+            // Clear the canvas to ensure transparent background
+            normalizedCtx.clearRect(0, 0, maxW, maxH);
+            
             // Center the raw frame within the normalized canvas
-            const offsetX = (maxW - rawFrame.width) / 2;
-            const offsetY = (maxH - rawFrame.height) / 2;
+            const offsetX = Math.floor((maxW - rawFrame.width) / 2);
+            const offsetY = Math.floor((maxH - rawFrame.height) / 2);
             normalizedCtx.drawImage(rawFrame, offsetX, offsetY);
             
             this.frames.push(normalizedCanvas);
             
-            // Create frame display with same dimensions
+            // Create frame display with EXACT same dimensions
             const frameDiv = document.createElement('div');
             frameDiv.className = 'frame';
             
@@ -330,6 +334,7 @@ class SpriteSheetGenerator {
             displayCanvas.width = maxW;
             displayCanvas.height = maxH;
             const displayCtx = displayCanvas.getContext('2d');
+            displayCtx.clearRect(0, 0, maxW, maxH);
             displayCtx.drawImage(normalizedCanvas, 0, 0);
             
             const frameNumber = document.createElement('div');
