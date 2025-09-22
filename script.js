@@ -45,18 +45,14 @@ class SpriteSheetGenerator {
             this.columnsManual.value = this.columns;
             this.initializeGridPositions();
             this.updateGridOverlay();
-            if (this.spriteSheet) {
-                this.extractFrames();
-            }
+            if (this.spriteSheet) this.extractFrames();
         });
         this.rowsSelect.addEventListener('change', (e) => {
             this.rows = parseInt(e.target.value);
             this.rowsManual.value = this.rows;
             this.initializeGridPositions();
             this.updateGridOverlay();
-            if (this.spriteSheet) {
-                this.extractFrames();
-            }
+            if (this.spriteSheet) this.extractFrames();
         });
         
         this.columnsManual.addEventListener('input', (e) => {
@@ -66,9 +62,7 @@ class SpriteSheetGenerator {
                 this.columnsSelect.value = value <= 8 ? value : 8;
                 this.initializeGridPositions();
                 this.updateGridOverlay();
-                if (this.spriteSheet) {
-                    this.extractFrames();
-                }
+                if (this.spriteSheet) this.extractFrames();
             }
         });
         
@@ -79,9 +73,7 @@ class SpriteSheetGenerator {
                 this.rowsSelect.value = value <= 6 ? value : 6;
                 this.initializeGridPositions();
                 this.updateGridOverlay();
-                if (this.spriteSheet) {
-                    this.extractFrames();
-                }
+                if (this.spriteSheet) this.extractFrames();
             }
         });
         this.playBtn.addEventListener('click', () => this.playAnimation());
