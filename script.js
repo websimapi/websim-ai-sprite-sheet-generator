@@ -1,426 +1,371 @@
-class SpriteSheetGenerator {
-    constructor() {
-        this.spriteSheet = null;
-        this.frames = [];
-        this.animationInterval = null;
-        this.currentFrame = 0;
-        this.columns = 2;
-        this.rows = 2;
-        this.columnPositions = []; // Store custom column positions (percentages)
-        this.rowPositions = []; // Store custom row positions (percentages)
-        this.isDragging = false;
-        this.dragElement = null;
-        
-        this.initializeElements();
-        this.attachEventListeners();
-        this.initializeGridPositions();
-    }
-    
-    initializeElements() {
-        this.promptInput = document.getElementById('prompt');
-        this.columnsSelect = document.getElementById('columns');
-        this.rowsSelect = document.getElementById('rows');
-        this.columnsManual = document.getElementById('columnsManual');
-        this.rowsManual = document.getElementById('rowsManual');
-        this.styleSelect = document.getElementById('style');
-        this.generateBtn = document.getElementById('generateBtn');
-        this.resultsDiv = document.getElementById('results');
-        this.spriteSheetImg = document.getElementById('spriteSheet');
-        this.gridOverlay = document.getElementById('gridOverlay');
-        this.frameContainer = document.getElementById('frameContainer');
-        this.animationCanvas = document.getElementById('animationCanvas');
-        this.playBtn = document.getElementById('playBtn');
-        this.pauseBtn = document.getElementById('pauseBtn');
-        this.speedSlider = document.getElementById('speedSlider');
-        this.speedValue = document.getElementById('speedValue');
-        
-        // Set default prompt
-        this.promptInput.value = "A sprite sheet showing four frames of animation of a bird in flight. The bird is depicted in silhouette, with the wings in various positions suggesting movement. The style is simple and graphic, suitable for animation or game use. The background is transparent.";
-    }
-    
-    attachEventListeners() {
-        this.generateBtn.addEventListener('click', () => this.generateSpriteSheet());
-        this.columnsSelect.addEventListener('change', (e) => {
-            this.columns = parseInt(e.target.value);
-            this.columnsManual.value = this.columns;
-            this.initializeGridPositions();
-            this.updateGridOverlay();
-            if (this.spriteSheet) this.extractFrames();
-        });
-        this.rowsSelect.addEventListener('change', (e) => {
-            this.rows = parseInt(e.target.value);
-            this.rowsManual.value = this.rows;
-            this.initializeGridPositions();
-            this.updateGridOverlay();
-            if (this.spriteSheet) this.extractFrames();
-        });
-        
-        this.columnsManual.addEventListener('input', (e) => {
-            const value = parseInt(e.target.value);
-            if (value && value > 0 && value <= 20) {
-                this.columns = value;
-                this.columnsSelect.value = value <= 8 ? value : 8;
-                this.initializeGridPositions();
-                this.updateGridOverlay();
-                if (this.spriteSheet) this.extractFrames();
-            }
-        });
-        
-        this.rowsManual.addEventListener('input', (e) => {
-            const value = parseInt(e.target.value);
-            if (value && value > 0 && value <= 20) {
-                this.rows = value;
-                this.rowsSelect.value = value <= 6 ? value : 6;
-                this.initializeGridPositions();
-                this.updateGridOverlay();
-                if (this.spriteSheet) this.extractFrames();
-            }
-        });
-        this.playBtn.addEventListener('click', () => this.playAnimation());
-        this.pauseBtn.addEventListener('click', () => this.pauseAnimation());
-        this.speedSlider.addEventListener('input', (e) => {
-            this.speedValue.textContent = e.target.value + 'ms';
-            if (this.animationInterval) {
-                this.pauseAnimation();
-                this.playAnimation();
-            }
-        });
-        
-        document.getElementById('downloadFrames').addEventListener('click', () => this.downloadFrames());
-        document.getElementById('downloadGif').addEventListener('click', () => this.downloadGif());
-        
-        // Add drag event listeners
-        document.addEventListener('mousemove', (e) => this.handleDrag(e));
-        document.addEventListener('mouseup', () => this.stopDrag());
-        document.addEventListener('touchmove', (e) => this.handleDrag(e), { passive: false });
-        document.addEventListener('touchend', () => this.stopDrag());
-    }
-    
-    initializeGridPositions() {
-        // Initialize evenly spaced positions
-        this.columnPositions = [];
-        this.rowPositions = [];
-        
-        for (let i = 1; i < this.columns; i++) {
-            this.columnPositions.push((i / this.columns) * 100);
-        }
-        
-        for (let i = 1; i < this.rows; i++) {
-            this.rowPositions.push((i / this.rows) * 100);
-        }
-    }
-    
-    async generateSpriteSheet() {
-        const prompt = this.promptInput.value.trim();
-        const style = this.styleSelect.value;
-        
-        if (!prompt) {
-            alert('Please enter an animation description');
-            return;
-        }
-        
-        this.setLoading(true);
-        
-        try {
-            const totalFrames = this.columns * this.rows;
-            const gridInstruction = `${totalFrames} frames arranged in a perfect ${this.columns}x${this.rows} grid`;
-            const styleInstruction = style ? `, ${style}` : '';
-            
-            const fullPrompt = `${prompt}, ${gridInstruction}${styleInstruction}, evenly spaced frames, no gaps between frames, sprite sheet format, animation frames`;
-            
-            console.log('Generating with prompt:', fullPrompt);
-            
-            const result = await websim.imageGen({
-                prompt: fullPrompt,
-                width: 1024,
-                height: 512,
-            });
-            
-            this.spriteSheet = result.url;
-            this.displayResults();
-            
-        } catch (error) {
-            console.error('Error generating sprite sheet:', error);
-            alert('Error generating sprite sheet. Please try again.');
-        } finally {
-            this.setLoading(false);
-        }
-    }
-    
-    setLoading(isLoading) {
-        const btnText = this.generateBtn.querySelector('.btn-text');
-        const spinner = this.generateBtn.querySelector('.loading-spinner');
-        
-        if (isLoading) {
-            btnText.textContent = 'Generating...';
-            spinner.style.display = 'block';
-            this.generateBtn.disabled = true;
-        } else {
-            btnText.textContent = 'Generate Sprite Sheet';
-            spinner.style.display = 'none';
-            this.generateBtn.disabled = false;
-        }
-    }
-    
-    displayResults() {
-        this.spriteSheetImg.src = this.spriteSheet;
-        this.spriteSheetImg.onload = () => {
-            this.updateGridOverlay();
-            this.extractFrames();
-        };
-        this.resultsDiv.style.display = 'block';
-    }
-    
-    updateGridOverlay() {
-        if (!this.spriteSheetImg.src) return;
-        
-        const overlay = this.gridOverlay;
-        overlay.innerHTML = '';
-        
-        // Create vertical grid lines
-        this.columnPositions.forEach((position, index) => {
-            const vLine = document.createElement('div');
-            vLine.className = 'grid-line vertical';
-            vLine.style.left = `${position}%`;
-            vLine.dataset.type = 'vertical';
-            vLine.dataset.index = index;
-            
-            vLine.addEventListener('mousedown', (e) => this.startDrag(e, vLine));
-            vLine.addEventListener('touchstart', (e) => this.startDrag(e, vLine), { passive: false });
-            
-            overlay.appendChild(vLine);
-        });
-        
-        // Create horizontal grid lines
-        this.rowPositions.forEach((position, index) => {
-            const hLine = document.createElement('div');
-            hLine.className = 'grid-line horizontal';
-            hLine.style.top = `${position}%`;
-            hLine.dataset.type = 'horizontal';
-            hLine.dataset.index = index;
-            
-            hLine.addEventListener('mousedown', (e) => this.startDrag(e, hLine));
-            hLine.addEventListener('touchstart', (e) => this.startDrag(e, hLine), { passive: false });
-            
-            overlay.appendChild(hLine);
-        });
-    }
-    
-    startDrag(event, element) {
-        event.preventDefault();
-        this.isDragging = true;
-        this.dragElement = element;
-        element.classList.add('dragging');
-        
-        const evt = event.touches ? event.touches[0] : event;
-        
-        // Store initial mouse position
-        this.dragStartX = evt.clientX;
-        this.dragStartY = evt.clientY;
-        
-        // Store container bounds
-        const rect = this.gridOverlay.getBoundingClientRect();
-        this.containerRect = rect;
-    }
-    
-    handleDrag(event) {
-        if (!this.isDragging || !this.dragElement) return;
-        
-        event.preventDefault();
-        
-        const evt = event.touches ? event.touches[0] : event;
-        const rect = this.containerRect;
-        const type = this.dragElement.dataset.type;
-        const index = parseInt(this.dragElement.dataset.index);
-        
-        if (type === 'vertical') {
-            const x = evt.clientX - rect.left;
-            const percentage = Math.max(5, Math.min(95, (x / rect.width) * 100));
-            
-            this.columnPositions[index] = percentage;
-            this.dragElement.style.left = `${percentage}%`;
-        } else if (type === 'horizontal') {
-            const y = evt.clientY - rect.top;
-            const percentage = Math.max(5, Math.min(95, (y / rect.height) * 100));
-            
-            this.rowPositions[index] = percentage;
-            this.dragElement.style.top = `${percentage}%`;
-        }
-    }
-    
-    stopDrag() {
-        if (this.isDragging && this.dragElement) {
-            this.dragElement.classList.remove('dragging');
-            this.isDragging = false;
-            this.dragElement = null;
-            
-            // Re-extract frames with new grid positions
-            if (this.spriteSheet) {
-                this.extractFrames();
-            }
-        }
-    }
-    
-    extractFrames() {
-        this.frameContainer.innerHTML = '';
-        this.frames = [];
-        
-        const img = this.spriteSheetImg;
-        
-        // Calculate actual positions including custom grid positions
-        const colPositions = [0, ...this.columnPositions.map(p => p / 100), 1];
-        const rowPositions = [0, ...this.rowPositions.map(p => p / 100), 1];
-        
-        // Sort positions to ensure proper order
-        colPositions.sort((a, b) => a - b);
-        rowPositions.sort((a, b) => a - b);
+class SpriteApp {
+  constructor() {
+    // State
+    this.imgUrl = null;
+    this.imgEl = document.getElementById('sheet');
+    this.overlay = document.getElementById('overlay');
+    this.frames = [];
+    this.cols = 2;
+    this.rows = 2;
+    this.colPercents = []; // between 0..100, excludes 0 and 100
+    this.rowPercents = [];
+    this.dragging = null; // {type:'v'|'h', index, lineEl}
+    this.timer = null;
+    this.cur = 0;
 
-        // First pass: extract raw frames and find max dimensions
-        const rawFrames = [];
-        let maxW = 0, maxH = 0;
-        
-        for (let row = 0; row < this.rows; row++) {
-            for (let col = 0; col < this.columns; col++) {
-                // Calculate frame boundaries
-                const x1 = Math.floor(colPositions[col] * img.naturalWidth);
-                const x2 = Math.floor(colPositions[col + 1] * img.naturalWidth);
-                const y1 = Math.floor(rowPositions[row] * img.naturalHeight);
-                const y2 = Math.floor(rowPositions[row + 1] * img.naturalHeight);
-                
-                const frameWidth = x2 - x1;
-                const frameHeight = y2 - y1;
-                maxW = Math.max(maxW, frameWidth);
-                maxH = Math.max(maxH, frameHeight);
-                
-                // Create canvas for this frame
-                const canvas = document.createElement('canvas');
-                canvas.width = frameWidth;
-                canvas.height = frameHeight;
-                const ctx = canvas.getContext('2d');
-                
-                // Extract frame from sprite sheet
-                ctx.drawImage(
-                    img,
-                    x1, y1,
-                    frameWidth, frameHeight,
-                    0, 0,
-                    frameWidth, frameHeight
-                );
-                
-                rawFrames.push(canvas);
-            }
-        }
+    // UI
+    this.prompt = document.getElementById('prompt');
+    this.colsInput = document.getElementById('cols');
+    this.rowsInput = document.getElementById('rows');
+    this.styleSelect = document.getElementById('style');
+    this.generateBtn = document.getElementById('generate');
+    this.uploadInput = document.getElementById('upload');
 
-        // Ensure all frames are EXACTLY the same size
-        let frameIndex = 0;
-        for (const rawFrame of rawFrames) {
-            // Create normalized canvas with EXACT max dimensions
-            const normalizedCanvas = document.createElement('canvas');
-            normalizedCanvas.width = maxW;
-            normalizedCanvas.height = maxH;
-            const normalizedCtx = normalizedCanvas.getContext('2d');
-            
-            // Clear the canvas to ensure transparent background
-            normalizedCtx.clearRect(0, 0, maxW, maxH);
-            
-            // Center the raw frame within the normalized canvas
-            const offsetX = Math.floor((maxW - rawFrame.width) / 2);
-            const offsetY = Math.floor((maxH - rawFrame.height) / 2);
-            normalizedCtx.drawImage(rawFrame, offsetX, offsetY);
-            
-            this.frames.push(normalizedCanvas);
-            
-            // Create frame display with EXACT same dimensions
-            const frameDiv = document.createElement('div');
-            frameDiv.className = 'frame';
-            
-            const displayCanvas = document.createElement('canvas');
-            displayCanvas.width = maxW;
-            displayCanvas.height = maxH;
-            const displayCtx = displayCanvas.getContext('2d');
-            displayCtx.clearRect(0, 0, maxW, maxH);
-            displayCtx.drawImage(normalizedCanvas, 0, 0);
-            
-            const frameNumber = document.createElement('div');
-            frameNumber.className = 'frame-number';
-            frameNumber.textContent = frameIndex + 1;
-            
-            frameDiv.appendChild(displayCanvas);
-            frameDiv.appendChild(frameNumber);
-            this.frameContainer.appendChild(frameDiv);
-            
-            frameIndex++;
-        }
-        
-        this.setupAnimationCanvas();
+    this.workArea = document.getElementById('workArea');
+    this.framesArea = document.getElementById('framesArea');
+    this.previewArea = document.getElementById('previewArea');
+    this.exportArea = document.getElementById('exportArea');
+
+    this.framesWrap = document.getElementById('frames');
+    this.previewCanvas = document.getElementById('preview');
+    this.playBtn = document.getElementById('play');
+    this.pauseBtn = document.getElementById('pause');
+    this.speedSlider = document.getElementById('speed');
+    this.speedVal = document.getElementById('speedVal');
+
+    this.dlFrames = document.getElementById('dlFrames');
+    this.dlSheet = document.getElementById('dlSheet');
+
+    // Defaults
+    this.prompt.value =
+      "A sprite sheet showing four frames of animation of a bird in flight. The bird is depicted in silhouette, with the wings in various positions suggesting movement. The style is simple and graphic, suitable for animation or game use. The background is transparent.";
+
+    // Init
+    this.bind();
+    this.syncGrid();
+  }
+
+  bind() {
+    this.generateBtn.addEventListener('click', () => this.generate());
+    this.uploadInput.addEventListener('change', (e) => this.handleUpload(e));
+
+    this.colsInput.addEventListener('input', () => {
+      this.cols = this.clampInt(this.colsInput.value, 1, 20);
+      this.syncGrid();
+      if (this.imgEl.complete && this.imgEl.naturalWidth) this.extractFrames();
+    });
+
+    this.rowsInput.addEventListener('input', () => {
+      this.rows = this.clampInt(this.rowsInput.value, 1, 20);
+      this.syncGrid();
+      if (this.imgEl.complete && this.imgEl.naturalWidth) this.extractFrames();
+    });
+
+    // Dragging
+    document.addEventListener('mousemove', (e) => this.onDragMove(e));
+    document.addEventListener('mouseup', () => this.onDragEnd());
+    document.addEventListener('touchmove', (e) => this.onDragMove(e), { passive: false });
+    document.addEventListener('touchend', () => this.onDragEnd());
+
+    // Preview
+    this.playBtn.addEventListener('click', () => this.play());
+    this.pauseBtn.addEventListener('click', () => this.pause());
+    this.speedSlider.addEventListener('input', (e) => {
+      this.speedVal.textContent = `${e.target.value}ms`;
+      if (this.timer) {
+        this.pause();
+        this.play();
+      }
+    });
+
+    // Exports
+    this.dlFrames.addEventListener('click', () => this.downloadFrames());
+    this.dlSheet.addEventListener('click', () => this.downloadSheet());
+  }
+
+  clampInt(v, min, max) {
+    const n = parseInt(v, 10);
+    if (isNaN(n)) return min;
+    return Math.max(min, Math.min(max, n));
+  }
+
+  syncGrid() {
+    // Evenly spaced defaults
+    this.colPercents = [];
+    this.rowPercents = [];
+    for (let i = 1; i < this.cols; i++) this.colPercents.push((i / this.cols) * 100);
+    for (let i = 1; i < this.rows; i++) this.rowPercents.push((i / this.rows) * 100);
+    this.renderOverlay();
+  }
+
+  setLoading(on) {
+    this.generateBtn.classList.toggle('loading', on);
+    this.generateBtn.disabled = on;
+  }
+
+  async generate() {
+    const prompt = this.prompt.value.trim();
+    if (!prompt) {
+      alert('Please enter an animation description.');
+      return;
     }
-    
-    setupAnimationCanvas() {
-        if (this.frames.length === 0) return;
-        
-        const canvas = this.animationCanvas;
-        const firstFrame = this.frames[0];
-        
-        canvas.width = firstFrame.width;
-        canvas.height = firstFrame.height;
-        
-        this.drawFrame(0);
+    const style = this.styleSelect.value;
+    const total = this.cols * this.rows;
+    const grid = `${total} frames arranged in a perfect ${this.cols}x${this.rows} grid`;
+    const full = `${prompt}, ${grid}${style ? ', ' + style : ''}, evenly spaced frames, no gaps, sprite sheet format, animation frames, transparent background`;
+
+    this.setLoading(true);
+    try {
+      const result = await websim.imageGen({
+        prompt: full,
+        width: Math.max(512, this.cols * 256),
+        height: Math.max(512, this.rows * 256),
+      });
+      this.loadImage(result.url);
+    } catch (e) {
+      console.error(e);
+      alert('Generation failed. Try again.');
+    } finally {
+      this.setLoading(false);
     }
-    
-    drawFrame(frameIndex) {
-        if (frameIndex >= this.frames.length) return;
-        
-        const canvas = this.animationCanvas;
-        const ctx = canvas.getContext('2d');
-        const frame = this.frames[frameIndex];
-        
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(frame, 0, 0);
+  }
+
+  handleUpload(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const url = URL.createObjectURL(file);
+    this.loadImage(url);
+  }
+
+  loadImage(url) {
+    this.imgUrl = url;
+    this.imgEl.src = url;
+    this.imgEl.onload = () => {
+      this.workArea.style.display = '';
+      this.framesArea.style.display = '';
+      this.previewArea.style.display = '';
+      this.exportArea.style.display = '';
+      this.renderOverlay();
+      this.extractFrames();
+    };
+  }
+
+  renderOverlay() {
+    if (!this.overlay) return;
+    this.overlay.innerHTML = '';
+    this.overlay.style.pointerEvents = 'none';
+
+    // Add draggable lines with large handles for touch
+    // Vertical lines
+    this.colPercents.forEach((p, i) => {
+      const line = document.createElement('div');
+      line.className = 'grid-line vertical';
+      line.style.left = `${p}%`;
+      line.style.top = '0';
+      line.style.height = '100%';
+      line.dataset.type = 'v';
+      line.dataset.index = String(i);
+
+      const handle = document.createElement('div');
+      handle.className = 'grid-handle v';
+      handle.style.left = '0';
+      handle.textContent = '|';
+      handle.style.top = '50%';
+
+      // Make handles catch events
+      handle.style.pointerEvents = 'auto';
+      line.style.pointerEvents = 'auto';
+
+      const start = (ev) => this.onDragStart(ev, 'v', i, line);
+      line.addEventListener('mousedown', start);
+      line.addEventListener('touchstart', start, { passive: false });
+      handle.addEventListener('mousedown', start);
+      handle.addEventListener('touchstart', start, { passive: false });
+
+      line.appendChild(handle);
+      this.overlay.appendChild(line);
+    });
+
+    // Horizontal lines
+    this.rowPercents.forEach((p, i) => {
+      const line = document.createElement('div');
+      line.className = 'grid-line horizontal';
+      line.style.top = `${p}%`;
+      line.style.left = '0';
+      line.style.width = '100%';
+      line.dataset.type = 'h';
+      line.dataset.index = String(i);
+
+      const handle = document.createElement('div');
+      handle.className = 'grid-handle h';
+      handle.style.top = '0';
+      handle.textContent = '—';
+      handle.style.left = '50%';
+
+      handle.style.pointerEvents = 'auto';
+      line.style.pointerEvents = 'auto';
+
+      const start = (ev) => this.onDragStart(ev, 'h', i, line);
+      line.addEventListener('mousedown', start);
+      line.addEventListener('touchstart', start, { passive: false });
+      handle.addEventListener('mousedown', start);
+      handle.addEventListener('touchstart', start, { passive: false });
+
+      line.appendChild(handle);
+      this.overlay.appendChild(line);
+    });
+  }
+
+  getOverlayRect() {
+    return this.overlay.getBoundingClientRect();
+  }
+
+  onDragStart(event, type, index, lineEl) {
+    if (event.cancelable) event.preventDefault();
+    const pt = event.touches ? event.touches[0] : event;
+    this.dragging = { type, index, lineEl, startX: pt.clientX, startY: pt.clientY };
+    this.overlay.style.pointerEvents = 'auto'; // enable pointer capture during drag
+  }
+
+  onDragMove(event) {
+    if (!this.dragging) return;
+    if (event.cancelable) event.preventDefault();
+
+    const rect = this.getOverlayRect();
+    const pt = event.touches ? event.touches[0] : event;
+
+    if (this.dragging.type === 'v') {
+      const x = ((pt.clientX - rect.left) / rect.width) * 100;
+      const clamped = Math.max(1, Math.min(99, x));
+      this.colPercents[this.dragging.index] = clamped;
+      this.colPercents.sort((a, b) => a - b);
+      this.renderOverlay();
+    } else {
+      const y = ((pt.clientY - rect.top) / rect.height) * 100;
+      const clamped = Math.max(1, Math.min(99, y));
+      this.rowPercents[this.dragging.index] = clamped;
+      this.rowPercents.sort((a, b) => a - b);
+      this.renderOverlay();
     }
-    
-    playAnimation() {
-        if (this.frames.length === 0) return;
-        
-        this.pauseAnimation();
-        
-        const speed = parseInt(this.speedSlider.value);
-        this.animationInterval = setInterval(() => {
-            this.currentFrame = (this.currentFrame + 1) % this.frames.length;
-            this.drawFrame(this.currentFrame);
-        }, speed);
+  }
+
+  onDragEnd() {
+    if (!this.dragging) return;
+    this.dragging = null;
+    this.overlay.style.pointerEvents = 'none';
+    if (this.imgEl.complete && this.imgEl.naturalWidth) this.extractFrames();
+  }
+
+  extractFrames() {
+    this.frames = [];
+    this.framesWrap.innerHTML = '';
+
+    const img = this.imgEl;
+    const cols = [0, ...this.colPercents.map(p => p / 100), 1].sort((a,b)=>a-b);
+    const rows = [0, ...this.rowPercents.map(p => p / 100), 1].sort((a,b)=>a-b);
+
+    let maxW = 0, maxH = 0;
+    const raw = [];
+
+    for (let r = 0; r < this.rows; r++) {
+      for (let c = 0; c < this.cols; c++) {
+        const x1 = Math.round(cols[c] * img.naturalWidth);
+        const x2 = Math.round(cols[c+1] * img.naturalWidth);
+        const y1 = Math.round(rows[r] * img.naturalHeight);
+        const y2 = Math.round(rows[r+1] * img.naturalHeight);
+        const w = Math.max(0, x2 - x1);
+        const h = Math.max(0, y2 - y1);
+
+        const can = document.createElement('canvas');
+        can.width = w; can.height = h;
+        const ctx = can.getContext('2d');
+        ctx.clearRect(0,0,w,h);
+        ctx.drawImage(img, x1, y1, w, h, 0, 0, w, h);
+
+        raw.push(can);
+        maxW = Math.max(maxW, w);
+        maxH = Math.max(maxH, h);
+      }
     }
-    
-    pauseAnimation() {
-        if (this.animationInterval) {
-            clearInterval(this.animationInterval);
-            this.animationInterval = null;
-        }
+
+    // Normalize every frame to the largest W/H
+    let i = 0;
+    for (const rCan of raw) {
+      const norm = document.createElement('canvas');
+      norm.width = maxW;
+      norm.height = maxH;
+      const nctx = norm.getContext('2d');
+      nctx.clearRect(0,0,maxW,maxH);
+      const offX = Math.floor((maxW - rCan.width)/2);
+      const offY = Math.floor((maxH - rCan.height)/2);
+      nctx.drawImage(rCan, offX, offY);
+      this.frames.push(norm);
+
+      // UI cell
+      const cell = document.createElement('div');
+      cell.className = 'frame';
+      const dv = document.createElement('div');
+      dv.className = 'frame-tag';
+      dv.textContent = i+1;
+      const disp = document.createElement('canvas');
+      disp.width = maxW; disp.height = maxH;
+      disp.getContext('2d').drawImage(norm, 0, 0);
+      cell.appendChild(disp);
+      cell.appendChild(dv);
+      this.framesWrap.appendChild(cell);
+      i++;
     }
-    
-    downloadFrames() {
-        if (this.frames.length === 0) return;
-        
-        this.frames.forEach((canvas, index) => {
-            const link = document.createElement('a');
-            link.download = `frame_${index + 1}.png`;
-            link.href = canvas.toDataURL();
-            link.click();
-        });
-    }
-    
-    async downloadGif() {
-        if (this.frames.length === 0) return;
-        
-        // Simple GIF creation would require a library
-        // For now, we'll download the original sprite sheet
-        const link = document.createElement('a');
-        link.download = 'sprite_sheet.png';
-        link.href = this.spriteSheet;
-        link.click();
-    }
+
+    // Setup preview canvas to normalized size
+    const cvs = this.previewCanvas;
+    cvs.width = maxW;
+    cvs.height = maxH;
+    this.cur = 0;
+    this.draw(0);
+  }
+
+  draw(index) {
+    const cvs = this.previewCanvas;
+    const ctx = cvs.getContext('2d');
+    ctx.clearRect(0,0,cvs.width,cvs.height);
+    const frame = this.frames[index];
+    if (frame) ctx.drawImage(frame, 0, 0);
+  }
+
+  play() {
+    if (!this.frames.length) return;
+    this.pause();
+    const speed = parseInt(this.speedSlider.value, 10);
+    this.timer = setInterval(() => {
+      this.cur = (this.cur + 1) % this.frames.length;
+      this.draw(this.cur);
+    }, speed);
+  }
+
+  pause() {
+    if (this.timer) clearInterval(this.timer);
+    this.timer = null;
+  }
+
+  downloadFrames() {
+    if (!this.frames.length) return;
+    this.frames.forEach((c, idx) => {
+      const a = document.createElement('a');
+      a.download = `frame_${idx+1}.png`;
+      a.href = c.toDataURL('image/png');
+      a.click();
+    });
+  }
+
+  downloadSheet() {
+    if (!this.imgUrl) return;
+    const a = document.createElement('a');
+    a.download = 'sprite_sheet.png';
+    a.href = this.imgUrl;
+    a.click();
+  }
 }
 
-// Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
-    new SpriteSheetGenerator();
+  new SpriteApp();
 });
