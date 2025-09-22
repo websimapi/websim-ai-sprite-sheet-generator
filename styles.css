@@ -224,10 +224,8 @@ textarea:focus, select:focus {
     border: 1px solid #444;
     border-radius: 8px;
     overflow: hidden;
+    aspect-ratio: 1;
     position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .frame canvas {

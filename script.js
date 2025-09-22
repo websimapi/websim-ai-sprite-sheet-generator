@@ -222,10 +222,7 @@ class SpriteSheetGenerator {
     handleDrag(event) {
         if (!this.isDragging || !this.dragElement) return;
         
-        // This is a touch event, so we want to prevent default scrolling behavior
-        if (event.touches) {
-            event.preventDefault();
-        }
+        event.preventDefault();
         
         const evt = event.touches ? event.touches[0] : event;
         const rect = this.containerRect;
@@ -263,88 +260,65 @@ class SpriteSheetGenerator {
     extractFrames() {
         this.frameContainer.innerHTML = '';
         this.frames = [];
-
+        
         const img = this.spriteSheetImg;
-        if (!img.naturalWidth || !img.naturalHeight) return;
-
-        // Ensure positions are sorted for correct calculations
-        const sortedColPositions = [0, ...this.columnPositions.sort((a, b) => a - b).map(p => p / 100), 1];
-        const sortedRowPositions = [0, ...this.rowPositions.sort((a, b) => a - b).map(p => p / 100), 1];
-
-        let frameData = [];
-        let maxWidth = 0;
-        let maxHeight = 0;
-
-        // First pass: calculate dimensions of each frame and find max width/height
+        
+        // Calculate actual positions including custom grid positions
+        const colPositions = [0, ...this.columnPositions.map(p => p / 100), 1];
+        const rowPositions = [0, ...this.rowPositions.map(p => p / 100), 1];
+        
+        // Sort positions to ensure proper order
+        colPositions.sort((a, b) => a - b);
+        rowPositions.sort((a, b) => a - b);
+        
+        let frameIndex = 0;
         for (let row = 0; row < this.rows; row++) {
             for (let col = 0; col < this.columns; col++) {
-                const x1 = sortedColPositions[col] * img.naturalWidth;
-                const x2 = sortedColPositions[col + 1] * img.naturalWidth;
-                const y1 = sortedRowPositions[row] * img.naturalHeight;
-                const y2 = sortedRowPositions[row + 1] * img.naturalHeight;
-
-                const frameWidth = Math.round(x2 - x1);
-                const frameHeight = Math.round(y2 - y1);
+                // Calculate frame boundaries
+                const x1 = colPositions[col] * img.naturalWidth;
+                const x2 = colPositions[col + 1] * img.naturalWidth;
+                const y1 = rowPositions[row] * img.naturalHeight;
+                const y2 = rowPositions[row + 1] * img.naturalHeight;
                 
-                if (frameWidth <= 0 || frameHeight <= 0) continue;
-
-                if (frameWidth > maxWidth) maxWidth = frameWidth;
-                if (frameHeight > maxHeight) maxHeight = frameHeight;
-
-                frameData.push({ x: x1, y: y1, width: frameWidth, height: frameHeight });
+                const frameWidth = x2 - x1;
+                const frameHeight = y2 - y1;
+                
+                // Create canvas for this frame
+                const canvas = document.createElement('canvas');
+                canvas.width = frameWidth;
+                canvas.height = frameHeight;
+                const ctx = canvas.getContext('2d');
+                
+                // Extract frame from sprite sheet
+                ctx.drawImage(
+                    img,
+                    x1, y1,
+                    frameWidth, frameHeight,
+                    0, 0,
+                    frameWidth, frameHeight
+                );
+                
+                this.frames.push(canvas);
+                
+                // Create frame display
+                const frameDiv = document.createElement('div');
+                frameDiv.className = 'frame';
+                
+                const displayCanvas = canvas.cloneNode();
+                const displayCtx = displayCanvas.getContext('2d');
+                displayCtx.drawImage(canvas, 0, 0);
+                
+                const frameNumber = document.createElement('div');
+                frameNumber.className = 'frame-number';
+                frameNumber.textContent = frameIndex + 1;
+                
+                frameDiv.appendChild(displayCanvas);
+                frameDiv.appendChild(frameNumber);
+                this.frameContainer.appendChild(frameDiv);
+                
+                frameIndex++;
             }
         }
-
-        if (maxWidth === 0 || maxHeight === 0) return;
-
-        // Second pass: extract frames and pad them to max dimensions
-        frameData.forEach((data, index) => {
-            // Create a temporary canvas for the original unpadded frame
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.width = data.width;
-            tempCanvas.height = data.height;
-            const tempCtx = tempCanvas.getContext('2d');
-            
-            tempCtx.drawImage(
-                img,
-                data.x, data.y,
-                data.width, data.height,
-                0, 0,
-                data.width, data.height
-            );
-
-            // Create the final, padded canvas
-            const finalCanvas = document.createElement('canvas');
-            finalCanvas.width = maxWidth;
-            finalCanvas.height = maxHeight;
-            const finalCtx = finalCanvas.getContext('2d');
-
-            // Calculate position to center the frame
-            const offsetX = Math.round((maxWidth - data.width) / 2);
-            const offsetY = Math.round((maxHeight - data.height) / 2);
-
-            // Draw the original frame onto the center of the padded canvas
-            finalCtx.drawImage(tempCanvas, offsetX, offsetY);
-
-            this.frames.push(finalCanvas);
-            
-            // Create frame display
-            const frameDiv = document.createElement('div');
-            frameDiv.className = 'frame';
-
-            // Use the final padded canvas for display
-            const displayCanvas = finalCanvas.cloneNode(true);
-            const displayCtx = displayCanvas.getContext('2d');
-            displayCtx.drawImage(finalCanvas, 0, 0);
-
-            const frameNumber = document.createElement('div');
-            frameNumber.className = 'frame-number';
-            frameNumber.textContent = index + 1;
-            
-            frameDiv.appendChild(displayCanvas);
-            frameDiv.appendChild(frameNumber);
-            this.frameContainer.appendChild(frameDiv);
-        });
         
         this.setupAnimationCanvas();
     }
