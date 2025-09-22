@@ -115,7 +115,7 @@ class SpriteApp {
     const style = this.styleSelect.value;
     const total = this.cols * this.rows;
     const grid = `${total} frames arranged in a perfect ${this.cols}x${this.rows} grid`;
-    const full = `${prompt}, ${grid}${style ? ', ' + style : ''}, evenly spaced frames, no gaps, sprite sheet format, animation frames, transparent background`;
+    const full = `${prompt}, ${grid}${style ? ', ' + style : ''}, evenly spaced frames, no gaps, sprite sheet format, alpha transparency, background must be fully transparent, no white or colored background`;
 
     this.setLoading(true);
     try {
@@ -257,7 +257,7 @@ class SpriteApp {
         const ctx = can.getContext('2d');
         ctx.clearRect(0,0,w,h);
         ctx.drawImage(img, x1, y1, w, h, 0, 0, w, h);
-
+        this.whitenToAlpha(can, 12);
         raw.push(can);
         maxW = Math.max(maxW, w);
         maxH = Math.max(maxH, h);
@@ -311,6 +311,18 @@ class SpriteApp {
     const start = this.frames.findIndex((_,idx)=>!this.frameHidden[idx]);
     this.cur = start===-1 ? 0 : start;
     this.draw(this.cur);
+  }
+
+  whitenToAlpha(canvas, tol = 10) {
+    const ctx = canvas.getContext('2d');
+    const { width, height } = canvas;
+    const img = ctx.getImageData(0, 0, width, height);
+    const d = img.data, t = 255 - tol;
+    for (let i = 0; i < d.length; i += 4) {
+      const r = d[i], g = d[i + 1], b = d[i + 2];
+      if (r >= t && g >= t && b >= t) d[i + 3] = 0;
+    }
+    ctx.putImageData(img, 0, 0);
   }
 
   draw(index) {
