@@ -328,7 +328,8 @@ class SpriteSheetGenerator {
             if (c.width === maxW && c.height === maxH) return c;
             const padded = document.createElement('canvas');
             padded.width = maxW; padded.height = maxH;
-            padded.getContext('2d').drawImage(c, 0, 0);
+            const px = Math.floor((maxW - c.width) / 2), py = Math.floor((maxH - c.height) / 2);
+            padded.getContext('2d').drawImage(c, px, py);
             return padded;
         });
         
